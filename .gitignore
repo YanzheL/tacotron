@@ -1,0 +1,12 @@
+.idea
+.DS_Store
+tfrecords*/*
+*.log
+log*
+export/*
+__pycache__
+dataset
+LJSpeech-1.1
+*.wav
+*.npy
+predict
