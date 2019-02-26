@@ -60,7 +60,6 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None, co
         if mode == tf.estimator.ModeKeys.TRAIN:
             model.add_loss()
             model.add_optimizer(global_step)
-            stats = add_stats(model)
             # train_hooks.extend([
             #     LoggingTensorHook(
             #         [global_step, model.loss, tf.shape(model.linear_outputs)],
@@ -71,6 +70,27 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None, co
             inv_spectrogram_tensorflow,
             model.linear_outputs
         )
+
+    if mode == tf.estimator.ModeKeys.TRAIN:
+        with tf.variable_scope('stats') as scope:
+            tf.summary.histogram('linear_outputs', model.linear_outputs)
+            tf.summary.histogram('linear_targets', model.linear_targets)
+            tf.summary.histogram('mel_outputs', model.mel_outputs)
+            tf.summary.histogram('mel_targets', model.mel_targets)
+            tf.summary.scalar('loss_mel', model.mel_loss)
+            tf.summary.scalar('loss_linear', model.linear_loss)
+            tf.summary.scalar('learning_rate', model.learning_rate)
+            tf.summary.scalar('loss', model.loss)
+            gradient_norms = [tf.norm(grad) for grad in model.gradients]
+            tf.summary.histogram('gradient_norm', gradient_norms)
+            tf.summary.scalar('max_gradient_norm', tf.reduce_max(gradient_norms))
+            tf.summary.audio(
+                'outputs',
+                outputs,
+                hparams.sample_rate,
+                max_outputs=1
+            )
+            tf.summary.merge_all()
 
     return tf.estimator.EstimatorSpec(
         mode,
@@ -85,30 +105,6 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None, co
         evaluation_hooks=None,
         prediction_hooks=None
     )
-
-
-def add_stats(model):
-    with tf.variable_scope('stats') as scope:
-        tf.summary.histogram('linear_outputs', model.linear_outputs)
-        tf.summary.histogram('linear_targets', model.linear_targets)
-        tf.summary.histogram('mel_outputs', model.mel_outputs)
-        tf.summary.histogram('mel_targets', model.mel_targets)
-        tf.summary.scalar('loss_mel', model.mel_loss)
-        tf.summary.scalar('loss_linear', model.linear_loss)
-        tf.summary.scalar('learning_rate', model.learning_rate)
-        tf.summary.scalar('loss', model.loss)
-        gradient_norms = [tf.norm(grad) for grad in model.gradients]
-        tf.summary.histogram('gradient_norm', gradient_norms)
-        tf.summary.scalar('max_gradient_norm', tf.reduce_max(gradient_norms))
-        # wav=tf.get_default_session().run(model.linear_outputs)
-        # wav=inv_spectrogram(wav.T)
-        # wav=inv_preemphasis(wav)
-        # wav = wav[:find_endpoint(wav)]
-        # tf.summary.audio(
-        #     'linear_outputs',
-        #     [wav]
-        # )
-        return tf.summary.merge_all()
 
 
 def predict_input_fn(texts):

@@ -3,7 +3,6 @@
 tfrecords*/*
 *.log
 log*
-export/*
 __pycache__
 dataset
 LJSpeech-1.1
