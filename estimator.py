@@ -162,8 +162,20 @@ def main(args):
         )
         for idx, wav in enumerate(results):
             wav = inv_preemphasis(wav)
-            wav = wav[:find_endpoint(wav)]
-            # sp.save('wav_{}.npy'.format(idx), wav, allow_pickle=False)
+            # wav = wav[:find_endpoint(wav)]
+            # with tf.Session(graph=tf.Graph()) as sess:
+            #     wav = tf.convert_to_tensor(wav, tf.float32)
+            #     op = tf.audio.encode_wav(
+            #         [wav],
+            #         hparams.sample_rate
+            #     )
+            #     sess.run(
+            #         tf.io.write_file(
+            #             'example.wav',
+            #             op
+            #         )
+            #     )
+            sp.save('wav_{}.npy'.format(idx), wav, allow_pickle=False)
             save_wav(wav, 'output_{}.wav'.format(idx))
             # break
     elif args.mode == 'export':
@@ -188,9 +200,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--data_dir', default='tfrecords_tf')
+    parser.add_argument('--data_dir', default='tfrecords_std')
     parser.add_argument('--export_dir', default='export')
-    parser.add_argument('--model_dir', default='logdir/20190227')
+    parser.add_argument('--model_dir', default='logdir/20190228')
     parser.add_argument('--checkpoint_interval', '-c', type=int, default=100)
     parser.add_argument('--summary_interval', '-s', type=int, default=10)
     parser.add_argument('--mode', '-m', required=True, choices=['train', 'predict', 'export'])

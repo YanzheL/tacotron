@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tensorflow.contrib.rnn import MultiRNNCell, OutputProjectionWrapper, ResidualWrapper, GRUCell
-from tensorflow.contrib.seq2seq import BasicDecoder, BahdanauAttention, AttentionWrapper
+from tensorflow.compat.v1.nn.rnn_cell import MultiRNNCell, ResidualWrapper, RNNCell, GRUCell
+from seq2seq import BasicDecoder, BahdanauAttention, AttentionWrapper
 from text.symbols import symbols
 from util.infolog import log
 from .helpers import TacoTestHelper, TacoTrainingHelper
@@ -8,6 +8,58 @@ from .modules import encoder_cbhg, post_cbhg, prenet
 from .rnn_wrappers import DecoderPrenetWrapper, ConcatOutputAndAttentionWrapper
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, MaxPool1D, Bidirectional, \
     StackedRNNCells
+
+class OutputProjectionWrapper(RNNCell):
+  """Operator adding an output projection to the given cell.
+  Note: in many cases it may be more efficient to not use this wrapper,
+  but instead concatenate the whole sequence of your outputs in time,
+  do the projection on this batch-concatenated sequence, then split it
+  if needed or directly feed into a softmax.
+  """
+
+  def __init__(self, cell, output_size, activation=None, reuse=None):
+    """Create a cell with output projection.
+    Args:
+      cell: an RNNCell, a projection to output_size is added to it.
+      output_size: integer, the size of the output after projection.
+      activation: (optional) an optional activation function.
+      reuse: (optional) Python boolean describing whether to reuse variables
+        in an existing scope.  If not `True`, and the existing scope already has
+        the given variables, an error is raised.
+    Raises:
+      TypeError: if cell is not an RNNCell.
+      ValueError: if output_size is not positive.
+    """
+    super(OutputProjectionWrapper, self).__init__(_reuse=reuse)
+    if output_size < 1:
+      raise ValueError("Parameter output_size must be > 0: %d." % output_size)
+    self._cell = cell
+    self._output_size = output_size
+    self._activation = activation
+    self._linear = None
+
+  @property
+  def state_size(self):
+    return self._cell.state_size
+
+  @property
+  def output_size(self):
+    return self._output_size
+
+  def zero_state(self, batch_size, dtype):
+    with ops.name_scope(type(self).__name__ + "ZeroState", values=[batch_size]):
+      return self._cell.zero_state(batch_size, dtype)
+
+  def call(self, inputs, state):
+    """Run the cell and output projection on inputs, starting from state."""
+    output, res_state = self._cell(inputs, state)
+    if self._linear is None:
+      self._linear = _Linear(output, self._output_size, True)
+    projected = self._linear(output)
+    if self._activation:
+      projected = self._activation(projected)
+    return projected, res_state
+
 
 
 class Tacotron():
