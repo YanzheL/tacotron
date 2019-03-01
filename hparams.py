@@ -42,7 +42,7 @@ hparams = tf.contrib.training.HParams(
 )
 
 SESS_CFG = tf.ConfigProto(
-    log_device_placement=True,
+    # log_device_placement=True,
     gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
 )
 
