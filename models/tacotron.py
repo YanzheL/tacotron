@@ -1,13 +1,12 @@
 import tensorflow as tf
 from tensorflow.contrib.rnn import MultiRNNCell, OutputProjectionWrapper, ResidualWrapper, GRUCell
 from tensorflow.contrib.seq2seq import BasicDecoder, BahdanauAttention, AttentionWrapper
-from text.symbols import symbols
+from text.encoders.english.symbols import symbols
 from util.infolog import log
 from .helpers import TacoTestHelper, TacoTrainingHelper
 from .modules import encoder_cbhg, post_cbhg, prenet
 from .rnn_wrappers import DecoderPrenetWrapper, ConcatOutputAndAttentionWrapper
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, MaxPool1D, Bidirectional, \
-    StackedRNNCells
+from tensorflow.keras.layers import Dense
 
 
 class Tacotron():
