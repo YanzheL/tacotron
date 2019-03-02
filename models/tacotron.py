@@ -1,13 +1,11 @@
 import tensorflow as tf
-from tensorflow.contrib.rnn import MultiRNNCell, OutputProjectionWrapper, ResidualWrapper, GRUCell
+from tensorflow.contrib.rnn import GRUCell, MultiRNNCell, OutputProjectionWrapper, ResidualWrapper
 from tensorflow.contrib.seq2seq import BasicDecoder, BahdanauAttention, AttentionWrapper
 from text.symbols import symbols
 from util.infolog import log
 from .helpers import TacoTestHelper, TacoTrainingHelper
 from .modules import encoder_cbhg, post_cbhg, prenet
 from .rnn_wrappers import DecoderPrenetWrapper, ConcatOutputAndAttentionWrapper
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, MaxPool1D, Bidirectional, \
-    StackedRNNCells
 
 
 class Tacotron():
@@ -66,11 +64,6 @@ class Tacotron():
                 ResidualWrapper(GRUCell(hp.decoder_depth)),
                 ResidualWrapper(GRUCell(hp.decoder_depth))
             ], state_is_tuple=True)  # [N, T_in, decoder_depth=256]
-            # decoder_cell = StackedRNNCells([
-            #     OutputProjectionWrapper(concat_cell, hp.decoder_depth),
-            #     ResidualWrapper(GRUCell(hp.decoder_depth)),
-            #     ResidualWrapper(GRUCell(hp.decoder_depth))
-            # ])  # [N, T_in, decoder_depth=256]
 
             # Project onto r mel spectrograms (predict r outputs at each RNN step):
             output_cell = OutputProjectionWrapper(decoder_cell, hp.num_mels * hp.outputs_per_step)
@@ -91,7 +84,7 @@ class Tacotron():
             # Add post-processing CBHG:
             post_outputs = post_cbhg(mel_outputs, hp.num_mels, is_training,  # [N, T_out, postnet_depth=256]
                                      hp.postnet_depth)
-            linear_outputs = Dense(hp.num_freq)(post_outputs)  # [N, T_out, F]
+            linear_outputs = tf.layers.dense(post_outputs, hp.num_freq)  # [N, T_out, F]
 
             # Grab alignments from the final decoder state:
             alignments = tf.transpose(final_decoder_state[0].alignment_history.stack(), [1, 2, 0])
@@ -135,7 +128,7 @@ class Tacotron():
         with tf.variable_scope('optimizer') as scope:
             hp = self._hparams
             if hp.decay_learning_rate:
-                self.learning_rate = self._learning_rate_decay(hp.initial_learning_rate, global_step)
+                self.learning_rate = _learning_rate_decay(hp.initial_learning_rate, global_step)
             else:
                 self.learning_rate = tf.convert_to_tensor(hp.initial_learning_rate)
             optimizer = tf.train.AdamOptimizer(self.learning_rate, hp.adam_beta1, hp.adam_beta2)
@@ -149,9 +142,9 @@ class Tacotron():
                 self.optimize = optimizer.apply_gradients(zip(clipped_gradients, variables),
                                                           global_step=global_step)
 
-    @staticmethod
-    def _learning_rate_decay(init_lr, global_step):
-        # Noam scheme from tensor2tensor:
-        warmup_steps = 4000.0
-        step = tf.cast(global_step + 1, dtype=tf.float32)
-        return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
+
+def _learning_rate_decay(init_lr, global_step):
+    # Noam scheme from tensor2tensor:
+    warmup_steps = 4000.0
+    step = tf.cast(global_step + 1, dtype=tf.float32)
+    return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)

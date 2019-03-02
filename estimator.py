@@ -162,7 +162,7 @@ def main(args):
         )
         for idx, wav in enumerate(results):
             wav = inv_preemphasis(wav)
-            wav = wav[:find_endpoint(wav)]
+            # wav = wav[:find_endpoint(wav)]
             # sp.save('wav_{}.npy'.format(idx), wav, allow_pickle=False)
             save_wav(wav, 'output_{}.wav'.format(idx))
             # break
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', default='tfrecords_tf')
     parser.add_argument('--export_dir', default='export')
-    parser.add_argument('--model_dir', default='logdir/20190227')
+    parser.add_argument('--model_dir', default='logdir/20190301')
     parser.add_argument('--checkpoint_interval', '-c', type=int, default=100)
     parser.add_argument('--summary_interval', '-s', type=int, default=10)
     parser.add_argument('--mode', '-m', required=True, choices=['train', 'predict', 'export'])
