@@ -1,6 +1,5 @@
 import tensorflow as tf
-# from tensorflow.contrib.rnn import GRUCell
-from tensorflow.keras.layers import GRUCell, Dense, Dropout, BatchNormalization, MaxPool1D, Bidirectional
+from tensorflow.contrib.rnn import GRUCell
 
 
 def prenet(inputs, is_training, layer_sizes, scope=None):
@@ -8,9 +7,8 @@ def prenet(inputs, is_training, layer_sizes, scope=None):
     drop_rate = 0.5 if is_training else 0.0
     with tf.variable_scope(scope or 'prenet'):
         for i, size in enumerate(layer_sizes):
-            # dense = tf.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i + 1))
-            dense = Dense(units=size, activation=tf.nn.relu, name='dense_%d' % (i + 1))(x)
-            x = Dropout(rate=drop_rate, name='dropout_%d' % (i + 1))(dense, training=is_training)
+            dense = tf.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i + 1))
+            x = tf.layers.dropout(dense, rate=drop_rate, training=is_training, name='dropout_%d' % (i + 1))
     return x
 
 
@@ -47,15 +45,11 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections, depth):
             )
 
         # Maxpooling:
-        # maxpool_output = tf.layers.max_pooling1d(
-        #     conv_outputs,
-        #     pool_size=2,
-        #     strides=1,
-        #     padding='same')
-        maxpool_output = MaxPool1D(
+        maxpool_output = tf.layers.max_pooling1d(
+            conv_outputs,
             pool_size=2,
             strides=1,
-            padding='same')(conv_outputs)
+            padding='same')
 
         # Two projection layers:
         proj1_output = conv1d(maxpool_output, 3, projections[0], tf.nn.relu, is_training, 'proj_1')
@@ -69,8 +63,7 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections, depth):
 
         # Handle dimensionality mismatch:
         if highway_input.shape[2] != half_depth:
-            # highway_input = tf.layers.dense(highway_input, half_depth)
-            highway_input = Dense(half_depth)(highway_input)
+            highway_input = tf.layers.dense(highway_input, half_depth)
 
         # 4-layer HighwayNet:
         for i in range(4):
@@ -84,35 +77,22 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections, depth):
             rnn_input,
             sequence_length=input_lengths,
             dtype=tf.float32)
-        # outputs, states = Bidirectional(
-        #     GRUCell(half_depth),
-        #     sequence_length=input_lengths,
-        #     dtype=tf.float32)(rnn_input)
         return tf.concat(outputs, axis=2)  # Concat forward and backward
 
 
 def highwaynet(inputs, scope, depth):
     with tf.variable_scope(scope):
-        # H = tf.layers.dense(
-        #     inputs,
-        #     units=depth,
-        #     activation=tf.nn.relu,
-        #     name='H')
-        # T = tf.layers.dense(
-        #     inputs,
-        #     units=depth,
-        #     activation=tf.nn.sigmoid,
-        #     name='T',
-        #     bias_initializer=tf.constant_initializer(-1.0))
-        H = Dense(
+        H = tf.layers.dense(
+            inputs,
             units=depth,
             activation=tf.nn.relu,
-            name='H')(inputs)
-        T = Dense(
+            name='H')
+        T = tf.layers.dense(
+            inputs,
             units=depth,
             activation=tf.nn.sigmoid,
             name='T',
-            bias_initializer=tf.constant_initializer(-1.0))(inputs)
+            bias_initializer=tf.constant_initializer(-1.0))
         return H * T + inputs * (1.0 - T)
 
 
@@ -124,10 +104,4 @@ def conv1d(inputs, kernel_size, channels, activation, is_training, scope):
             kernel_size=kernel_size,
             activation=activation,
             padding='same')
-        # conv1d_output = tf.keras.layers.Conv1D(
-        #     filters=channels,
-        #     kernel_size=kernel_size,
-        #     activation=activation,
-        #     padding='same')(inputs)
-        # return tf.layers.batch_normalization(conv1d_output, training=is_training)
-        return BatchNormalization()(conv1d_output, training=is_training)
+        return tf.layers.batch_normalization(conv1d_output, training=is_training)
