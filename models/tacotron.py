@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib.rnn import GRUCell, MultiRNNCell, OutputProjectionWrapper, ResidualWrapper
 from tensorflow.contrib.seq2seq import BasicDecoder, BahdanauAttention, AttentionWrapper
-from text.symbols import symbols
+# from text.symbols import symbols
 from util.infolog import log
 from .helpers import TacoTestHelper, TacoTrainingHelper
 from .modules import encoder_cbhg, post_cbhg, prenet
@@ -12,7 +12,7 @@ class Tacotron():
     def __init__(self, hparams):
         self._hparams = hparams
 
-    def initialize(self, inputs, input_lengths, mel_targets=None, linear_targets=None):
+    def initialize(self, inputs, input_lengths, table_size, mel_targets=None, linear_targets=None):
         '''Initializes the model for inference.
         Sets "mel_outputs", "linear_outputs", and "alignments" fields.
         Args:
@@ -34,7 +34,7 @@ class Tacotron():
 
             # Embeddings
             embedding_table = tf.get_variable(
-                'embedding', [len(symbols), hp.embed_depth], dtype=tf.float32,
+                'embedding', [table_size, hp.embed_depth], dtype=tf.float32,
                 initializer=tf.truncated_normal_initializer(stddev=0.5))
             embedded_inputs = tf.nn.embedding_lookup(embedding_table, inputs)  # [N, T_in, embed_depth=256]
 
