@@ -9,3 +9,4 @@ LJSpeech-1.1
 *.wav
 *.npy
 predict
+*.out
