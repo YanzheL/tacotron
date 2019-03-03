@@ -9,6 +9,7 @@ import scipy as sp
 from util.audio import inv_spectrogram, save_wav, inv_spectrogram_tensorflow, inv_preemphasis, find_endpoint
 from argparse import ArgumentParser
 import os
+from text.encoders import TextEncoder
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -107,7 +108,7 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None, co
     )
 
 
-def predict_input_fn(texts):
+def predict_input_fn(texts, encoder):
     def make_dataset(features, labels, batch_size):
         """An input function for evaluation or prediction"""
         features = dict(features)
@@ -126,8 +127,7 @@ def predict_input_fn(texts):
         # Return the dataset.
         return dataset
 
-    cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
-    seqs = [text_to_sequence(text, cleaner_names) for text in texts]
+    seqs = [encoder.encode(text) for text in texts]
     lengths = [len(seq) for seq in seqs]
     features = {
         'inputs': tf.convert_to_tensor(seqs, dtype=tf.int32),
@@ -137,6 +137,8 @@ def predict_input_fn(texts):
 
 
 def main(args):
+    encoder = TextEncoder.get_encoder(args.lang)
+    hparams.embed_width = encoder.SYMBOLS_SIZE
     os.makedirs(args.model_dir, exist_ok=True)
     estimator = tf.estimator.Estimator(
         model_fn=model_fn,
@@ -158,7 +160,7 @@ def main(args):
     elif args.mode == 'predict':
         assert len(args.texts), "No text to predict"
         results = estimator.predict(
-            input_fn=lambda: predict_input_fn(args.texts)
+            input_fn=lambda: predict_input_fn(args.texts, encoder)
         )
         for idx, wav in enumerate(results):
             wav = inv_preemphasis(wav)
@@ -188,6 +190,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
+    parser.add_argument('--lang', default='chinese')
     parser.add_argument('--data_dir', default='tfrecords_tf')
     parser.add_argument('--export_dir', default='export')
     parser.add_argument('--model_dir', default='logdir/20190227')
