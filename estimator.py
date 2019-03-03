@@ -90,6 +90,11 @@ def model_fn(features, labels, mode=tf.estimator.ModeKeys.TRAIN, params=None, co
                 hparams.sample_rate,
                 max_outputs=1
             )
+            tf.summary.image(
+                'alignments',
+                tf.expand_dims(model.alignments, -1),
+                max_outputs=1
+            )
             tf.summary.merge_all()
 
     return tf.estimator.EstimatorSpec(

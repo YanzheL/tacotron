@@ -4,7 +4,7 @@ tfrecords*/*
 *.log
 log*
 __pycache__
-dataset
+datasets
 LJSpeech-1.1
 *.wav
 *.npy
