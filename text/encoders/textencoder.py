@@ -10,9 +10,13 @@ class TextEncoder(object):
             "Cannot find a implemented encoder class for language <{}>".format(language)
         )
 
+    def __init__(self):
+        raise NotImplementedError('Encoders are static by default')
+
     @staticmethod
     def encode(text):
         raise NotImplementedError('This method should be implemented in subclass')
 
-    def __init__(self):
-        raise NotImplementedError('Encoders are static by default')
+    @property
+    def SYMBOLS_SIZE(self):
+        raise NotImplementedError('Implementation class does not provide this property')
