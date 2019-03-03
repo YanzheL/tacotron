@@ -7,12 +7,12 @@ import numpy as np
 
 class EnglishEncoder(TextEncoder):
     LANGUAGE = 'english'
+    CLEANERS = ['english_cleaners']
+    SYMBOLS_SIZE = len(symbols)
 
-    def __init__(self, cleaners=None):
-        self.cleaners = cleaners if isinstance(cleaners, list) else ['english_cleaners']
-
-    def encode(self, text):
-        return np.array(text_to_sequence(text, self.cleaners), np.int32)
+    @staticmethod
+    def encode(text):
+        return np.array(text_to_sequence(text, EnglishEncoder.CLEANERS), np.int32)
 
 
 # Mappings from symbol to numeric ID and vice versa:

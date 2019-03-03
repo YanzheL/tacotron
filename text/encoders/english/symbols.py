@@ -14,4 +14,4 @@ _characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\'(),-.:;? '
 _arpabet = ['@' + s for s in cmudict.valid_symbols]
 
 # Export all symbols:
-symbols = [_pad, _eos] + list(_characters) + _arpabet
+symbols = tuple([_pad, _eos] + list(_characters) + _arpabet)
